@@ -42,8 +42,8 @@ Results from the IMDb snapshot used during development (they shift slightly as I
 
 ## Screenshots
 
-![Search](docs/screenshots/search.png)
-![Recommendations for Toy Story](docs/screenshots/results-toy-story.png)
+![Search](docs/search.png)
+![Recommendations for Toy Story](docs/toy-story.png)
 
 ## Project structure
 
