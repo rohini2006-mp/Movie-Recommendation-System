@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MovieMatch | Smart Movie Recommendations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <header class="hero">
+            <div class="brand-row"><span class="brand-mark">M</span><span>MOVIEMATCH</span><span class="live-dot">● LIVE CATALOG</span></div>
+            <p class="eyebrow">CONTENT-BASED MOVIE DISCOVERY</p>
+            <h1>Find your next<br><span>movie night.</span></h1>
+            <p class="intro">Search the catalog, choose a title, and discover ten movies with similar genres using data-driven similarity scores.</p>
+        </header>
+
+        <section class="search-panel" aria-labelledby="search-heading">
+            <div class="panel-top"><div><p class="section-label">STEP 01 / SEARCH</p><h2 id="search-heading">What movie are you in the mood for?</h2></div><span class="catalog-size">{{ catalog_count }} titles</span></div>
+            <label for="movie-search">Type a movie title</label>
+            <div class="search-box"><span class="search-icon">⌕</span><input id="movie-search" type="search" autocomplete="off" placeholder="Try The Dark Knight, Toy Story..." aria-describedby="search-help"><button id="clear-search" class="clear-button" type="button" hidden aria-label="Clear search">×</button></div>
+            <p id="search-help" class="search-help">Start typing to see matching titles. Select one result below.</p>
+            <div id="search-results" class="search-results" role="listbox" aria-label="Movie search results"></div>
+            <form method="post" id="recommend-form" class="recommend-form">
+                <input type="hidden" id="selected-movie" name="movie" value="{{ selected_movie }}">
+                <div class="selected-title" id="selected-title">{% if selected_movie %}Selected: <strong>{{ selected_movie }}</strong>{% else %}No movie selected{% endif %}</div>
+                <button id="recommend-button" type="submit" disabled>Recommend <span aria-hidden="true">→</span></button>
+            </form>
+            {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+        </section>
+
+        {% if recommendations %}
+        <section class="results" aria-labelledby="results-heading">
+            <div class="results-heading"><div><p class="section-label">STEP 02 / YOUR RESULTS</p><h2 id="results-heading">Because you liked <em>{{ selected_movie }}</em></h2></div><span class="result-count">{{ recommendations|length }} matches</span></div>
+            <div class="movie-grid">
+                {% for movie in recommendations %}<article class="movie-card"><div class="rank">{{ "%02d"|format(loop.index) }}</div><div class="movie-info"><h3>{{ movie.title }}</h3><p class="genres">{{ movie.genres }}</p><div class="meta"><span class="similarity">{{ movie.score }}% similar</span>{% if movie.rating_count > 0 %}<span>★ {{ "%.1f"|format(movie.average_rating) }} / 10</span>{% endif %}</div></div></article>{% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <section class="how-it-works"><p class="section-label">HOW IT WORKS</p><div class="steps"><div><strong>01</strong><h3>Search a title</h3><p>Find any movie in the current catalog using the search box.</p></div><div><strong>02</strong><h3>Compare genres</h3><p>TF-IDF turns each movie's genres into meaningful numbers.</p></div><div><strong>03</strong><h3>Get matches</h3><p>Cosine similarity finds the ten closest titles.</p></div></div></section>
+        {% endif %}
+        <footer><span>Built with Python · Flask · pandas · scikit-learn</span><span>Content-based filtering · {{ catalog_count }} titles</span></footer>
+    </main>
+    <script>
+        const input = document.getElementById('movie-search');
+        const results = document.getElementById('search-results');
+        const hidden = document.getElementById('selected-movie');
+        const selected = document.getElementById('selected-title');
+        const recommend = document.getElementById('recommend-button');
+        const clear = document.getElementById('clear-search');
+        let timer;
+        function choose(title) { hidden.value = title; input.value = title; selected.innerHTML = 'Selected: <strong></strong>'; selected.querySelector('strong').textContent = title; recommend.disabled = false; results.innerHTML = ''; clear.hidden = false; }
+        input.addEventListener('input', () => { clear.hidden = !input.value; hidden.value = ''; recommend.disabled = true; selected.textContent = 'No movie selected'; clearTimeout(timer); const q = input.value.trim(); if (q.length < 2) { results.innerHTML = ''; return; } timer = setTimeout(async () => { const response = await fetch('/search?q=' + encodeURIComponent(q)); const titles = await response.json(); results.innerHTML = ''; if (titles.length) { titles.forEach(title => { const option = document.createElement('button'); option.type = 'button'; option.className = 'result-option'; option.setAttribute('role', 'option'); option.textContent = title; option.addEventListener('click', () => choose(title)); results.appendChild(option); }); } else { const none = document.createElement('p'); none.className = 'no-results'; none.textContent = 'No matching titles found.'; results.appendChild(none); } }, 180); });
+        clear.addEventListener('click', () => { input.value = ''; hidden.value = ''; selected.textContent = 'No movie selected'; recommend.disabled = true; results.innerHTML = ''; clear.hidden = true; input.focus(); });
+    </script>
+</body>
+</html>
